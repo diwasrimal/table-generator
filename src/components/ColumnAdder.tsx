@@ -52,13 +52,16 @@ export default function FieldAdder({ columns, setColumns }: ColumnAdderProps) {
       }
     }
 
+    // Add new column to column list
     const newCol = {
       name: colName,
       type: colType,
-      // multipleEntries: allowMultipleEntries,
     } as Column;
     console.log("Adding new column:", newCol);
     setColumns([...columns, newCol]);
+
+    // Reset states to default and close the dialog
+    setColType(defaultColType);
     setOpen(false);
   }
 

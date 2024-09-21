@@ -22,8 +22,10 @@ export default function RowAdder({
 }: RowAdderProps) {
   const nextRowNum = rows.length;
 
-  // TODO: fix this
   const refs = [
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
     useRef<HTMLInputElement>(null),
     useRef<HTMLInputElement>(null),
     useRef<HTMLInputElement>(null),

@@ -21,6 +21,7 @@ import { Row, Column } from "./lib/types";
 
 import RowDeleteButton from "./components/RowDeleter";
 import { EditableCell } from "./components/EditableCell";
+import { replacer, reviver } from "./lib/utils";
 
 export default function App() {
   // Try getting saved values from localStorage
@@ -31,7 +32,7 @@ export default function App() {
     JSON.parse(localStorage.getItem("columns") || "[]"),
   );
   const [rows, setRows] = useState<Row[]>(() =>
-    JSON.parse(localStorage.getItem("rows") || "[]"),
+    JSON.parse(localStorage.getItem("rows") || "[]", reviver),
   );
 
   // Sync values to localStorage on change
@@ -44,12 +45,13 @@ export default function App() {
   }, [columns]);
 
   useEffect(() => {
-    localStorage.setItem("rows", JSON.stringify(rows));
+    localStorage.setItem("rows", JSON.stringify(rows, replacer));
   }, [rows]);
 
   function addNewRow() {
     if (columns.length === 0) return;
-    const row: Row = new Array(columns.length).fill([]);
+    // const row: Row = new Array(columns.length).fill([]);
+    const row: Row = new Map();
     setRows([...rows, row]);
   }
 
@@ -101,7 +103,7 @@ export default function App() {
                     {col.name}
                   </Td>
                 ))}
-                <Td className="flex justify-center items-center">
+                <Td>
                   <ColumnAdder {...{ columns, setColumns }} />
                 </Td>
               </tr>
@@ -121,7 +123,7 @@ export default function App() {
                         <EditableCell
                           {...{
                             rowIdx: r,
-                            colIdx: c,
+                            col,
                             rows,
                             setRows,
                             // supportsMultipleEntries: col.multipleEntries,
@@ -130,7 +132,7 @@ export default function App() {
                       </Td>
                     );
                   })}
-                  <Td className="flex justify-center items-center">
+                  <Td>
                     <RowDeleteButton {...{ rowIdx: r, rows, setRows }} />
                   </Td>
                 </tr>

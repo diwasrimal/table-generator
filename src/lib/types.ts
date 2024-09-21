@@ -6,4 +6,6 @@ export type Column = {
 
 export type Cell = string[] | number[];
 
-export type Row = Cell[];
+export type Row = Map<string, Cell>;
+
+// export type Row = Cell[];
