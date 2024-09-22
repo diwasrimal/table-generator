@@ -2,10 +2,11 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Download,
+  Filter,
   Plus,
   Upload,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ColumnAdder from "./components/ColumnAdder";
 import Td from "./components/Td";
 import { Button } from "./components/ui/button";
@@ -22,18 +23,39 @@ import { Row, Column } from "./lib/types";
 import RowDeleteButton from "./components/RowDeleter";
 import { EditableCell } from "./components/EditableCell";
 import { replacer, reviver } from "./lib/utils";
+import TextColumnFilter from "./components/TextColumnFilter";
+import NumberColumnFilter from "./components/NumberColumnFilter";
 
 export default function App() {
-  // Try getting saved values from localStorage
-  const [entriesPerPage, setEntriesPerPage] = useState(
-    () => localStorage.getItem("entriesPerPage") || 10,
-  );
   const [columns, setColumns] = useState<Column[]>(() =>
     JSON.parse(localStorage.getItem("columns") || "[]"),
   );
   const [rows, setRows] = useState<Row[]>(() =>
     JSON.parse(localStorage.getItem("rows") || "[]", reviver),
   );
+
+  // Used for pagination
+  const [page, setPage] = useState(1);
+  const [entriesPerPage, setEntriesPerPage] = useState(() =>
+    Number(localStorage.getItem("entriesPerPage") || 10),
+  );
+
+  const [filterFuncs, setFilterFuncs] = useState<((rows: Row[]) => Row[])[]>(
+    [],
+  );
+
+  const rowsView = (() => {
+    let result = rows.slice(
+      (page - 1) * entriesPerPage,
+      Math.min(page * entriesPerPage, rows.length),
+    );
+    for (const func of filterFuncs) {
+      result = func(result);
+    }
+    return result;
+  })();
+
+  console.log("rowsView", rowsView);
 
   // Sync values to localStorage on change
   useEffect(() => {
@@ -50,7 +72,6 @@ export default function App() {
 
   function addNewRow() {
     if (columns.length === 0) return;
-    // const row: Row = new Array(columns.length).fill([]);
     const row: Row = new Map();
     setRows([...rows, row]);
   }
@@ -100,7 +121,30 @@ export default function App() {
                 <Td className="text-center">#</Td>
                 {columns.map((col) => (
                   <Td key={`${col.name}-column`} className="font-bold">
-                    {col.name}
+                    <div className="flex justify-center items-center">
+                      {col.name}
+                      {col.type === "number" ? (
+                        <NumberColumnFilter
+                          {...{
+                            col,
+                            rows,
+                            setRows,
+                            filterFuncs,
+                            setFilterFuncs,
+                          }}
+                        />
+                      ) : (
+                        <TextColumnFilter
+                          {...{
+                            col,
+                            rows,
+                            setRows,
+                            filterFuncs,
+                            setFilterFuncs,
+                          }}
+                        />
+                      )}
+                    </div>
                   </Td>
                 ))}
                 <Td>
@@ -109,34 +153,39 @@ export default function App() {
               </tr>
             </thead>
 
-            {/* All row entries */}
+            {/* All editable row entries */}
             <tbody>
-              {rows.map((row, r) => (
-                <tr key={`r-${r}`}>
-                  <Td className="text-sm text-secondary-foreground text-center">
-                    {r + 1}
-                  </Td>
-                  {columns.map((col, c) => {
-                    return (
-                      <Td key={`r-${r}-col-${col.name}`} className="p-0">
-                        {/* Avoided padding on parent to prevent false touches, instead can add padding inside */}
-                        <EditableCell
-                          {...{
-                            rowIdx: r,
-                            col,
-                            rows,
-                            setRows,
-                            // supportsMultipleEntries: col.multipleEntries,
-                          }}
-                        />
-                      </Td>
-                    );
-                  })}
-                  <Td>
-                    <RowDeleteButton {...{ rowIdx: r, rows, setRows }} />
-                  </Td>
-                </tr>
-              ))}
+              {rowsView.map((_, rvIdx) => {
+                const originalRowIdx = (page - 1) * entriesPerPage + rvIdx; // row view index starts from 0 for every page
+                return (
+                  <tr key={rvIdx}>
+                    <Td className="text-sm text-secondary-foreground text-center">
+                      {originalRowIdx + 1}
+                    </Td>
+                    {columns.map((col) => {
+                      return (
+                        <Td key={`${col.name}`} className="p-0">
+                          {/* Avoided padding on parent to prevent false touches, instead can add padding inside */}
+                          <EditableCell
+                            {...{
+                              rowIdx: originalRowIdx,
+                              cell: rowsView[rvIdx].get(col.name), // @fix
+                              col,
+                              rows,
+                              setRows,
+                            }}
+                          />
+                        </Td>
+                      );
+                    })}
+                    <Td>
+                      <RowDeleteButton
+                        {...{ rowIdx: originalRowIdx, rows, setRows }}
+                      />
+                    </Td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}
@@ -161,11 +210,28 @@ export default function App() {
             </Select>
           </div>
         </div>
-        <div className="flex gap-2 justify-center items-center">
-          <ChevronsLeft width={20} className="cursor-pointer" />
-          <Button variant="outline">Previous</Button>
-          <Button variant="outline">Next</Button>
-          <ChevronsRight width={20} className="cursor-pointer" />
+        <div className="flex gap-3 justify-center items-center">
+          <Button
+            variant="outline"
+            className="flex gap-1 justify-center items-center"
+            onClick={() => setPage(Math.max(1, page - 1))}
+          >
+            <ChevronsLeft width={20} className="cursor-pointer" />
+            Previous
+          </Button>
+          <span>{page}</span>
+          <Button
+            variant="outline"
+            className="flex gap-1 justify-center items-center"
+            onClick={() => {
+              if (rows.length > page * entriesPerPage) {
+                setPage(page + 1);
+              }
+            }}
+          >
+            Next
+            <ChevronsRight width={20} className="cursor-pointer" />
+          </Button>
         </div>
       </div>
     </div>

@@ -5,7 +5,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Column, Row } from "@/lib/types";
+import { Cell, Column, Row } from "@/lib/types";
 import { PopoverClose } from "@radix-ui/react-popover";
 import { useRef, useState } from "react";
 import { Button } from "./ui/button";
@@ -16,6 +16,7 @@ type EditableCellProps = {
   col: Column;
   rows: Row[];
   setRows: (rows: Row[]) => void;
+  cell: Cell;
   // supportsMultipleEntries: boolean;
 };
 
@@ -24,9 +25,10 @@ export function EditableCell({
   col,
   rows,
   setRows,
+  cell,
   // supportsMultipleEntries,
 }: EditableCellProps) {
-  const cell = rows[rowIdx].get(col.name);
+  // const cell = rows[rowIdx].get(col.name);
 
   const [open, setOpen] = useState(false);
   const [values, setValues] = useState(() => {
@@ -136,7 +138,12 @@ export function EditableCell({
         </div>
         {/* List of values */}
         <div className="max-h-[200px] overflow-auto">
-          <ValueList values={values} canRemove={true} onRemove={deleteValue} />
+          <ValueList
+            className="text-muted-foreground"
+            values={values}
+            canRemove={true}
+            onRemove={deleteValue}
+          />
         </div>
         {err && <p className="text-destructive text-sm">{err}</p>}
         <div className="flex gap-2 justify-end">
